@@ -22,7 +22,7 @@ function App() {
       id: newChatId,
       name: `Chat ${newChatId}`,
       messages: [
-        { sender: 'ai', text: 'Hola, soy tu asistente sexual. ¿En qué puedo ayudarte hoy?' }
+        { sender: 'ai', text: 'Hola, soy tu asistente virtualizado. ¿En qué puedo ayudarte hoy?' }
       ]
     };
     setChats(prevChats => [...prevChats, newChat]);
