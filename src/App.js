@@ -9,7 +9,7 @@ function App() {
       id: 1,
       name: 'Chat 1',
       messages: [
-        { sender: 'ai', text: 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?' }
+        { sender: 'ai', text: 'Hola, soy tu asistente virtualizado. ¿En qué puedo ayudarte hoy?' }
       ]
     }
   ]);
