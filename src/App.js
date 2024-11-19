@@ -1,25 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { getAIResponse } from './utils';
 import ChatWindow from './components/ChatWindows';
 
 function App() {
   const [chats, setChats] = useState([
-    {
-      id: 1,
-      name: 'Chat 1',
-      messages: [
-        { sender: 'ai', text: 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?' }
-      ]
-    }
   ]);
-  const [currentChatId, setCurrentChatId] = useState(1);
+  const [currentChatId, setCurrentChatId] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
 
-  const createNewChat = () => {
+  // Cargar los chats al iniciar la aplicación
+  useEffect(() => {
+    const fetchChats = async () => {
+      const response = await fetch('http://localhost:5000/api/chats');
+      const data = await response.json();
+      setChats(data);
+      if (data.length > 0) {
+        setCurrentChatId(data[0].chatId); // Seleccionar el primer chat por defecto
+      }
+    };
+    fetchChats();
+  }, []);
+
+  const createNewChat = async () => {
     const newChatId = chats.length + 1;
     const newChat = {
-      id: newChatId,
+      chatId: newChatId,
       name: `Chat ${newChatId}`,
       messages: [
         { sender: 'ai', text: 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?' }
@@ -27,12 +33,19 @@ function App() {
     };
     setChats(prevChats => [...prevChats, newChat]);
     setCurrentChatId(newChatId);
+
+    // Guardar el nuevo chat en el backend
+    await fetch('http://localhost:5000/api/chats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newChat)
+    });
   };
 
   const addMessage = async (messageText, sender) => {
     setChats(prevChats =>
       prevChats.map(chat => {
-        if (chat.id === currentChatId) {
+        if (chat.chatId === currentChatId) {
           return {
             ...chat,
             messages: [...chat.messages, { sender, text: messageText }]
@@ -45,12 +58,13 @@ function App() {
     if (sender === 'user') {
       setIsTyping(true);
 
-      const currentChat = chats.find(chat => chat.id === currentChatId);
+      const currentChat = chats.find(chat => chat.chatId === currentChatId);
       const aiResponse = await getAIResponse([...currentChat.messages, { sender, text: messageText }]);
       const cleanedResponse = aiResponse.replace(/\n/g, ' ').trim();
+
       setChats(prevChats =>
         prevChats.map(chat => {
-          if (chat.id === currentChatId) {
+          if (chat.chatId === currentChatId) {
             return {
               ...chat,
               messages: [...chat.messages, { sender: 'ai', text: cleanedResponse }]
@@ -59,7 +73,19 @@ function App() {
           return chat;
         })
       );
+
       setIsTyping(false);
+
+      // Actualizar el chat en el backend
+      await fetch('http://localhost:5000/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          name: currentChat.name,
+          messages: [...currentChat.messages, { sender: 'ai', text: cleanedResponse }]
+        })
+      });
     }
   };
 
@@ -68,20 +94,22 @@ function App() {
       <div className="chat-list">
         {chats.map(chat => (
           <button
-            key={chat.id}
-            className={chat.id === currentChatId ? 'active' : ''}
-            onClick={() => setCurrentChatId(chat.id)}
+            key={chat.chatId}
+            className={chat.chatId === currentChatId ? 'active' : ''}
+            onClick={() => setCurrentChatId(chat.chatId)}
           >
             {chat.name}
           </button>
         ))}
         <button onClick={createNewChat}>Nuevo Chat</button>
       </div>
-      <ChatWindow
-        currentChat={chats.find(chat => chat.id === currentChatId)}
-        onSendMessage={messageText => addMessage(messageText, 'user')}
-        isTyping={isTyping}
-      />
+      {currentChatId && (
+        <ChatWindow
+          currentChat={chats.find(chat => chat.chatId === currentChatId)}
+          onSendMessage={messageText => addMessage(messageText, 'user')}
+          isTyping={isTyping}
+        />
+      )}
     </div>
   );
 }
