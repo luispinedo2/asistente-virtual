@@ -14,11 +14,33 @@ function App() {
     const fetchChats = async () => {
       const response = await fetch('http://localhost:5000/api/chats');
       const data = await response.json();
-      setChats(data);
+
       if (data.length > 0) {
-        setCurrentChatId(data[0].chatId); // Seleccionar el primer chat por defecto
+        // Si existen chats, selecciona el último
+        setChats(data);
+        setCurrentChatId(data[data.length - 1].chatId);
+      } else {
+        // Si no hay chats, crea un chat por defecto
+        const defaultChat = {
+          chatId: 1,
+          name: 'Chat 1',
+          messages: [
+            { sender: 'ai', text: 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?' }
+          ]
+        };
+
+        setChats([defaultChat]);
+        setCurrentChatId(1);
+
+        // Guarda el chat por defecto en el backend
+        await fetch('http://localhost:5000/api/chats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultChat)
+        });
       }
     };
+
     fetchChats();
   }, []);
 
@@ -59,7 +81,20 @@ function App() {
       setIsTyping(true);
 
       const currentChat = chats.find(chat => chat.chatId === currentChatId);
-      const aiResponse = await getAIResponse([...currentChat.messages, { sender, text: messageText }]);
+      const updatedMessages = [...currentChat.messages, { sender, text: messageText }];
+
+      // Actualizar el backend con la pregunta del usuario
+      await fetch('http://localhost:5000/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          name: currentChat.name,
+          messages: updatedMessages
+        })
+      });
+
+      const aiResponse = await getAIResponse(updatedMessages);
       const cleanedResponse = aiResponse.replace(/\n/g, ' ').trim();
 
       setChats(prevChats =>
@@ -67,7 +102,7 @@ function App() {
           if (chat.chatId === currentChatId) {
             return {
               ...chat,
-              messages: [...chat.messages, { sender: 'ai', text: cleanedResponse }]
+              messages: [...updatedMessages, { sender: 'ai', text: cleanedResponse }]
             };
           }
           return chat;
@@ -76,14 +111,14 @@ function App() {
 
       setIsTyping(false);
 
-      // Actualizar el chat en el backend
+      // Actualizar el backend con la respuesta de la IA
       await fetch('http://localhost:5000/api/chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chatId: currentChatId,
           name: currentChat.name,
-          messages: [...currentChat.messages, { sender: 'ai', text: cleanedResponse }]
+          messages: [...updatedMessages, { sender: 'ai', text: cleanedResponse }]
         })
       });
     }
