@@ -50,7 +50,7 @@ function App() {
       chatId: newChatId,
       name: `Chat ${newChatId}`,
       messages: [
-        { sender: 'ai', text: 'Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?' }
+        { sender: 'ai', text: 'Hola, soy tu asistente virtualizado. ¿En qué puedo ayudarte hoy?' }
       ]
     };
     setChats(prevChats => [...prevChats, newChat]);
