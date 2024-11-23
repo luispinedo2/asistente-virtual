@@ -119,3 +119,21 @@ body {
 #new-chat-btn:hover {
   background-color: #3a80d2;
 }
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #e0e0e0;
+}
+
+.delete-btn {
+  width: 40px;
+  text-align: center;
+
+}
+
+
+.delete-btn:hover {
+  cursor: pointer;
+}
